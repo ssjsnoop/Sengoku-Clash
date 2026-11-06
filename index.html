@@ -86,6 +86,23 @@
   .tb[data-act=next]{right:60px;top:56px}
   .tb[data-act=gen]{right:8px;top:56px}
   .tb[data-act=peek]{right:164px;top:56px}
+  #dpad{position:absolute;left:14px;bottom:14px;width:138px;height:138px;touch-action:none;pointer-events:auto;user-select:none;-webkit-user-select:none;opacity:.8}
+  #dpad .arm{position:absolute;background:#2a2236;border:2px solid #6a5a8a;box-sizing:border-box}
+  #dpad .arm.u,#dpad .arm.d{left:37px;width:64px;height:55px}
+  #dpad .arm.l,#dpad .arm.r{top:37px;height:64px;width:55px}
+  #dpad .arm.u{top:0;border-radius:12px 12px 0 0;border-bottom:0}
+  #dpad .arm.d{bottom:0;border-radius:0 0 12px 12px;border-top:0}
+  #dpad .arm.l{left:0;border-radius:12px 0 0 12px;border-right:0}
+  #dpad .arm.r{right:0;border-radius:0 12px 12px 0;border-left:0}
+  #dpad .hub{position:absolute;left:37px;top:37px;width:64px;height:64px;background:#2a2236;border:0}
+  #dpad .hub:after{content:"";position:absolute;left:20px;top:20px;width:24px;height:24px;border-radius:50%;background:#1a1424;border:2px solid #4a3a6a;box-sizing:border-box}
+  #dpad .ar{position:absolute;font-style:normal;color:#8a7aaa;font-size:16px;line-height:1;pointer-events:none}
+  #dpad .ar.u{left:62px;top:12px}#dpad .ar.d{left:62px;bottom:12px}#dpad .ar.l{left:12px;top:60px}#dpad .ar.r{right:12px;top:60px}
+  #dpad .arm.on{background:#5a4a86;border-color:#ffd86b}
+  @media (max-height:520px){#dpad{width:112px;height:112px;left:10px;bottom:10px}
+    #dpad .arm.u,#dpad .arm.d{left:30px;width:52px;height:44px}#dpad .arm.l,#dpad .arm.r{top:30px;height:52px;width:44px}
+    #dpad .hub{left:30px;top:30px;width:52px;height:52px}#dpad .hub:after{left:15px;top:15px}
+    #dpad .ar.u{left:50px;top:9px}#dpad .ar.d{left:50px;bottom:9px}#dpad .ar.l{left:9px;top:48px}#dpad .ar.r{right:9px;top:48px}}
   .tb[data-act=pause]{left:8px;top:140px}
   #rot{display:none;position:fixed;top:0;left:0;right:0;background:#b02a2a;color:#fff;text-align:center;font-size:13px;font-weight:700;padding:6px;z-index:20;pointer-events:none}
   @media (orientation:portrait) and (pointer:coarse){#rot{display:block}}
@@ -153,10 +170,8 @@
   <div id="stage">
     <canvas id="game" width="960" height="540"></canvas>
     <div id="touch">
-      <div class="tb" data-act="left">◀</div>
-      <div class="tb" data-act="right">▶</div>
-      <div class="tb" data-act="up">▲</div>
-      <div class="tb" data-act="down">▼</div>
+      <div id="dpad"><div class="arm u"></div><div class="arm d"></div><div class="arm l"></div><div class="arm r"></div><div class="hub"></div>
+        <i class="ar u">▲</i><i class="ar d">▼</i><i class="ar l">◀</i><i class="ar r">▶</i></div>
       <div class="tb" data-act="atk">⚔</div>
       <div class="tb" data-act="block">🛡</div>
       <div class="tb" data-act="dodge">💨</div>
@@ -2402,7 +2417,7 @@ function endBattle() {
       <h1 style="color:#ffd86b">${finalWin ? 'THE WORLD IS YOURS' : R.name.toUpperCase() + ' CONQUERED'}</h1>
       <p>${finalWin ? 'Every banner on earth now bears your clan\'s mark. The conquest is complete.' : st.gen + ' has fallen, and ' + R.name + ' now flies your banner.'}</p>
       <p>${stats}</p>
-      <div class="btns"><div class="btn" id="a">${finalWin ? 'View the world' : 'Continue the conquest'}</div><div class="btn alt" id="b">Menu</div></div>`, 'end');
+      <div class="btns act"><div class="btn" id="a">${finalWin ? 'View the world' : 'Continue the conquest'}</div><div class="btn alt" id="b">Menu</div></div>`, 'end');
     document.getElementById('a').onclick = () => showWorld(finalWin ? st.region : Math.min(st.region + 1, REGIONS.length - 1), st.region);
     document.getElementById('b').onclick = showTitle;
     return;
@@ -2412,7 +2427,7 @@ function endBattle() {
     <p>${win ? 'The enemy castle is rubble. The road ahead is open.' : 'Your castle has fallen.'}</p>
     <p>${stats}</p>
     <p class="vet">Your best veterans carry their experience into the next battle.${win ? ' Spend your treasure in the Barracks.' : ''}</p>
-    <div class="btns">
+    <div class="btns act">
       ${win ? '<div class="btn" id="a">Next battle</div>' : '<div class="btn" id="a">Retry</div>'}
       <div class="btn alt" id="b">Map</div>${win ? '<div class="btn alt" id="c">Barracks</div>' : ''}</div>`, 'end');
   document.getElementById('a').onclick = () => { if (win) showMap(Math.min(idx + 1, STAGES.length - 1)); else startStage(idx); };
@@ -2513,6 +2528,29 @@ touchEl.querySelectorAll('.tb').forEach(b => {
   b.addEventListener('pointerdown', down);
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
 });
+(function(){
+  const dp = document.getElementById('dpad'); if (!dp) return;
+  const arms = { up: dp.querySelector('.arm.u'), down: dp.querySelector('.arm.d'), left: dp.querySelector('.arm.l'), right: dp.querySelector('.arm.r') };
+  let pid = null;
+  const set = (dirs) => {
+    for (const k of ['left', 'right', 'up', 'down']) { const on = !!dirs[k]; if (touchHeld[k] !== on) touchHeld[k] = on; arms[k].classList.toggle('on', on); }
+    recompute();
+  };
+  const read = e => {
+    const r = dp.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const dx = e.clientX - cx, dy = e.clientY - cy, dead = r.width * 0.12, diag = r.width * 0.16;
+    const d = {};
+    if (Math.hypot(dx, dy) < dead) return d;
+    if (dx < -diag) d.left = true; else if (dx > diag) d.right = true;
+    if (dy < -diag) d.up = true; else if (dy > diag) d.down = true;
+    if (!d.left && !d.right && !d.up && !d.down) { if (Math.abs(dx) > Math.abs(dy)) d[dx < 0 ? 'left' : 'right'] = true; else d[dy < 0 ? 'up' : 'down'] = true; }
+    return d;
+  };
+  dp.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); pid = e.pointerId; try { dp.setPointerCapture(pid); } catch (x) {} if (G && G.state === 'play') set(read(e)); });
+  dp.addEventListener('pointermove', e => { if (e.pointerId !== pid) return; e.preventDefault(); if (G && G.state === 'play') set(read(e)); });
+  const end = e => { if (e.pointerId !== pid) return; pid = null; set({}); };
+  dp.addEventListener('pointerup', end); dp.addEventListener('pointercancel', end); dp.addEventListener('lostpointercapture', end);
+})();
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) touchEl.style.display = 'block';
 
 let ptr = null;
@@ -2585,6 +2623,117 @@ loadAll().then(() => {
   showTitle();
   requestAnimationFrame(frame);
 });
+
+// ------------------------------------------------------------------ HIDDEN DEBUG PANEL
+// Open: on the title screen tap the small gold line "BANNERS OF THE LAST SHOGUN" 5 times quickly
+//       (or tap "Paused" 5 times on the pause screen for battle tools), then enter code 2057.
+const DBG_CODE = '2057', DBG_BK = 'sengoku_clash_debug_backup';
+let dbgTaps = 0, dbgTapT = 0, dbgMode = 'menu', dbgBack = null;
+function dbgBackup() { try { if (!localStorage.getItem(DBG_BK)) localStorage.setItem(DBG_BK, JSON.stringify(save)); } catch (e) {} }
+function dbgHasBackup() { try { return !!localStorage.getItem(DBG_BK); } catch (e) { return false; } }
+function dbgTap(mode, back) {
+  const n = performance.now();
+  if (n - dbgTapT > 2500) dbgTaps = 0;
+  dbgTapT = n;
+  if (++dbgTaps >= 5) { dbgTaps = 0; dbgMode = mode; dbgBack = back; dbgCode(); }
+}
+function dbgCode() {
+  showOverlay(`<h2>Debug</h2><p>Enter code</p>
+    <input id="dbgin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" style="font-size:22px;width:140px;text-align:center;padding:6px;border-radius:8px;border:2px solid #ffd86b;background:#1a1424;color:#fff">
+    <div class="btns"><div class="btn" id="dbgok">OK</div><div class="btn alt" id="dbgno">Cancel</div></div><p class="vet" id="dbgerr"></p>`, 'dbgcode');
+  const inp2 = document.getElementById('dbgin');
+  const go = () => { if (inp2.value === DBG_CODE) dbgPanel(''); else { document.getElementById('dbgerr').textContent = 'Wrong code'; inp2.value = ''; } };
+  document.getElementById('dbgok').onclick = go;
+  document.getElementById('dbgno').onclick = () => dbgBack();
+  inp2.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') go(); });
+  inp2.addEventListener('keyup', e => e.stopPropagation());
+  try { inp2.focus(); } catch (e) {}
+}
+function dbgPanel(msg) {
+  const battle = dbgMode === 'battle' && G && G.stage;
+  const regOpts = REGIONS.map((R, i) => `<option value="${i}">${R.name}</option>`).join('');
+  const sel = 'font-size:14px;padding:4px;border-radius:6px;background:#1a1424;color:#fff;border:1px solid #6a4a8a';
+  const B = (k, t) => `<div class="btn small alt" data-dbg="${k}">${t}</div>`;
+  showOverlay(`
+    <div class="xbtn" id="dbgx">← Close</div>
+    <h2>Debug panel</h2>
+    ${msg ? `<div class="vet" style="color:#7af7e6;font-size:13px">${msg}</div>` : ''}
+    ${battle ? `<p class="keys">Battle tools (${G.stage.name})</p><div class="btns">
+      ${B('koku', '+9999 koku')}${B('win', 'Win now')}${B('lose', 'Lose now')}${B('kgen', 'Kill enemy general')}${B('heal', 'Heal all + castle')}
+      ${B('god', 'Castle invulnerable: ' + (G.dbgGod ? 'ON' : 'off'))}${B('spawn', 'Spawn 6 enemies')}${B('maxlvl', 'Max-level my soldier')}${B('rally', 'Spawn 6 allies')}</div>` : ''}
+    <p class="keys">Jump to a battle</p>
+    <div class="btns"><select id="dbgreg" style="${sel}">${regOpts}</select><select id="dbgst" style="${sel}"></select>${B('go', 'Go')}</div>
+    <p class="keys">Progress &amp; resources</p>
+    <div class="btns">${B('unlock', 'Unlock all stages')}${B('conq', 'Mark world conquered')}${B('final', 'Play final boss')}${B('ending', 'Show ending screen')}</div>
+    <div class="btns">${B('money', '+99999 honor, +999 treasure')}${B('ups', 'Max all upgrades')}${B('units', 'Own every soldier')}${B('vets', 'Max veterans')}</div>
+    <p class="keys">Save safety</p>
+    <div class="btns">${B('restore', dbgHasBackup() ? 'Restore my real save' : 'Restore my real save (nothing changed yet)')}</div>
+    <p class="vet">The first time you change progress here, your real save is copied aside. Use Restore to get it back.</p>`, 'dbg');
+  const reg = document.getElementById('dbgreg'), st = document.getElementById('dbgst');
+  const fill = () => { st.innerHTML = REGIONS[+reg.value].stages.map((s, i) => `<option value="${i}">${i + 1}. ${s.name}</option>`).join(''); };
+  reg.onchange = fill; fill();
+  document.getElementById('dbgx').onclick = () => { if (dbgMode === 'battle' && G && G.stage) { G.state = 'play'; hideOverlay(); } else dbgBack(); };
+  const A = {
+    koku() { G.koku[0] += 9999; return '+9999 koku'; },
+    win() { G.state = 'play'; hideOverlay(); damageCastle(G.castle[1], 1e12, null); return ''; },
+    lose() { G.state = 'play'; hideOverlay(); damageCastle(G.castle[0], 1e12, null); return ''; },
+    kgen() { const g = G.gen[1]; if (!g.dead) die(g, G.ctrl || G.gen[0]); return 'Enemy general down'; },
+    heal() { for (const u of G.units) if (!u.dead && u.team === 0) u.hp = u.maxhp; G.castle[0].hp = G.castle[0].max; return 'Healed'; },
+    god() { G.dbgGod = !G.dbgGod; return 'Castle invulnerable ' + (G.dbgGod ? 'ON' : 'off'); },
+    spawn() { const ts = ['ashigaru', 'samurai', 'archer', 'sohei', 'ronin', 'heavy']; for (let i = 0; i < 6; i++) { const u = mk(ts[i], 1, G.gen[1].x - 90 - i * 34, G.stage.lvl); G.units.push(u); } return 'Spawned 6 enemies'; },
+    rally() { const ts = ['ashigaru', 'samurai', 'archer', 'sohei', 'ronin', 'heavy']; for (let i = 0; i < 6; i++) { const u = mk(ts[i], 0, G.gen[0].x + 90 + i * 34, startLvl(ts[i])); G.units.push(u); } return 'Spawned 6 allies'; },
+    maxlvl() { if (G.ctrl) { gainXP(G.ctrl, 1e6); return 'Soldier is Lv ' + G.ctrl.lvl; } return 'No soldier controlled'; },
+    go() { initAudio(); G.state = 'play'; startStage(REGIONS[+reg.value].start + (+st.value)); return null; },
+    unlock() { dbgBackup(); save.cleared = Math.max(save.cleared, STAGES.length - 1); writeSave(); return 'All stages unlocked (final boss reachable)'; },
+    conq() { dbgBackup(); save.cleared = STAGES.length; writeSave(); return 'World marked conquered'; },
+    final() { dbgBackup(); initAudio(); startStage(STAGES.length - 1); return null; },
+    ending() {
+      dbgBackup(); initAudio();
+      newGame(STAGES.length - 1); G.over = 'win'; G.t = 75; G.kills = 60; G.maxLvl = 12;
+      endBattle(); return null;
+    },
+    money() { dbgBackup(); save.honor += 99999; save.treasure += 999; writeSave(); return '+99999 honor, +999 treasure'; },
+    ups() { dbgBackup(); for (const u of UPGRADES) save.up[u.id] = u.max; writeSave(); return 'All upgrades maxed'; },
+    units() {
+      dbgBackup();
+      save.stats.kills = Math.max(save.stats.kills, 999);
+      for (const t in BUY_COST) save.bought[t] = true;
+      for (const t in KILLS_REQ) save.seenUnlock[t] = true;
+      save.loadout = ROSTER.filter(owned).slice(0, slotCount()); fixLoadout(); writeSave();
+      return 'All 9 soldier types owned (kills set to 999+)';
+    },
+    vets() { dbgBackup(); for (const t of ROSTER) save.legacy[t] = MAX_LVL; writeSave(); return 'Veterans at Lv ' + MAX_LVL; },
+    restore() {
+      let raw = null; try { raw = localStorage.getItem(DBG_BK); } catch (e) {}
+      if (!raw) return 'Nothing to restore (progress not changed from here)';
+      try { const s = JSON.parse(raw); save = Object.assign(defaultSave(), s); save.stats = Object.assign(defaultSave().stats, s.stats || {}); } catch (e) { return 'Backup unreadable'; }
+      try { localStorage.removeItem(DBG_BK); } catch (e) {}
+      fixLoadout(); writeSave(); return 'Real save restored';
+    },
+  };
+  overlay.querySelectorAll('[data-dbg]').forEach(b => b.onclick = () => {
+    const r = A[b.dataset.dbg]();
+    if (r !== null && r !== undefined && overlayMode === 'dbg') dbgPanel(r);
+  });
+}
+// castle invulnerability toggle (debug only)
+const _dbgDamageCastle = damageCastle;
+damageCastle = function (c, dmg, att) { if (G && G.dbgGod && c.team === 0) return; return _dbgDamageCastle(c, dmg, att); };
+// hidden triggers
+const _dbgShowTitle = showTitle;
+showTitle = function () {
+  _dbgShowTitle();
+  const s = overlay.querySelector('.sub');
+  if (s) s.addEventListener('click', () => dbgTap('menu', showTitle));
+};
+const _dbgPause = pauseGame;
+pauseGame = function () {
+  _dbgPause();
+  if (G && G.state === 'pause') {
+    const h = overlay.querySelector('h2');
+    if (h) h.addEventListener('click', () => dbgTap('battle', () => { G.state = 'play'; pauseGame(); }));
+  }
+};
 
 window.__SC = { get G() { return G; }, get save() { return save; }, UNITS, STAGES, spawn, setCtrl, cycle, update, startStage, showMap, showTitle, gainXP, tierOf, endBattle, REGIONS, showWorld, bossSheet, regionsConquered, mk, setOrder, peek, mapJump, beginLook, checkAch, checkUnlocks, showBarracks, showAch, fixLoadout, owned, buildCards, muzzle, trySpecial, runAbility, damageCastle, die, summonUnits, inp, startFromTitle };
 })();
